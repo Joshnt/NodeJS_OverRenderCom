@@ -28,12 +28,12 @@ function draw() {
     if(touches.length > 0){ 
 
       for (let touch of touches){
-        if (touch.id > 0){
+        if (touch.id == 0){
           fill(200,0,0,200);
           if (touch.x > width/2){
-            socket.emit("unity", "right");
+            socket.emit("data", "right");
           } else {
-            socket.emit("unity", "left");
+            socket.emit("data", "left");
           }
         }
         else{
