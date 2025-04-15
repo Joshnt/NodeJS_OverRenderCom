@@ -1,4 +1,5 @@
 let socket;
+let isMobile = false;
 
 function setup() {
   // Create a canvas that fills the browser window.
@@ -7,6 +8,13 @@ function setup() {
   // Connect to your remote server on Render.
   // Change "your-app-name.onrender.com" to your actual Render domain.
   socket = io.connect("https://nodejs-unity.onrender.com");
+
+  isMobile = isMobileDevice();
+  console.log("Mobile device?", isMobile);
+}
+
+function isMobileDevice() {
+  return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
 function draw() {
@@ -53,12 +61,30 @@ function draw() {
     
 }
 
-/* // Detect when the mouse is pressed and send an event.
+// Detect when the mouse is pressed and send an event.
 function mousePressed() {
-  socket.emit("data", "pressed");
+  if (!isMobile) press();
 }
-*/
+
 // Detect when the mouse is released and send an event.
 function mouseReleased() {
+  if (!isMobile) release();
+}
+
+function touchStarted(){
+  if (isMobile && touches.length == 1) press();
+  return false; // Prevent default behavior
+}
+
+function touchEnded(){
+  if (isMobile && touches.length == 0) release();
+  return false; // Prevent default behavior
+}
+
+function press(){
+  //socket.emit("data", "pressed");
+}
+
+function release(){
   socket.emit("data", "jumpReleased");
 }
