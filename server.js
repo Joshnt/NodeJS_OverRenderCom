@@ -16,6 +16,16 @@ const server = app.listen(port, () => {
 // 4. Set up Express to serve static files from the "public" directory.
 app.use(express.static("public"));
 
+// Route: /controller-a ➝ index-a.html
+app.get("/move_controller", (req, res) => {
+    res.sendFile(__dirname + "/public/move_controller/index.html");
+});
+
+// Route: /controller-b ➝ index-b.html
+app.get("/jump_controller", (req, res) => {
+    res.sendFile(__dirname + "/public/jump_controller/index.html");
+});
+
 // 5. Import and initialize Socket.IO with the created server.
 const socketio = require("socket.io");
 const io = socketio(server);
