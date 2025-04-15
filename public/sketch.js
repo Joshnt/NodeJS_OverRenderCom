@@ -6,7 +6,7 @@ function setup() {
 
   // Connect to your remote server on Render.
   // Change "your-app-name.onrender.com" to your actual Render domain.
-  socket = io.connect("localhost:3000");
+  socket = io.connect("https://nodejs-unity.onrender.com");
 }
 
 function draw() {
