@@ -35,6 +35,7 @@ io.on("connection", (socket) => {
         console.log("Received data from " + socket.id + ": " + msg);
         // Only forward ("broadcast") the message to the "max" room.
         io.to("max").emit("data", msg);
+        io.to("unity").emit("data", msg);
     });
 
     // (Optional) Log when the client disconnects.
