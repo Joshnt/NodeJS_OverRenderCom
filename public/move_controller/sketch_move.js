@@ -39,8 +39,6 @@ function draw() {
         else{
           fill(200,0,0,50);
         }
-        stroke(255);
-        strokeWeight(5);
         
         ellipseMode(CENTER,CENTER);
         ellipse(touch.x, touch.y, 20, 20);
@@ -50,16 +48,16 @@ function draw() {
     } 
   }else{
     // mouse
-  if (mouseIsPressed) {
-    fill(200, 0, 0, 200);
-    ellipse(mouseX, mouseY, 20, 20);
+    if (mouseIsPressed) {
+      fill(200, 0, 0, 200);
+      ellipse(mouseX, mouseY, 20, 20);
 
-    if (mouseX > width/2){
-      socket.emit("data", "right");
-    } else {
-      socket.emit("data", "left");
+      if (mouseX > width/2){
+        socket.emit("data", "right");
+      } else {
+        socket.emit("data", "left");
+      }
     }
-  }
   }
   
     
