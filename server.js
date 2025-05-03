@@ -1,55 +1,108 @@
-// Print a startup message on the server console
-console.log("Starting server...");
+const express = require('express');
+const { createServer } = require('node:http');
+const { join } = require('node:path');
+const { Server } = require('socket.io');
+const path = require('path');
+const fs = require('fs');
 
-// 1. Import Express and create an application instance.
-const express = require("express");
 const app = express();
+const server = createServer(app);
+const io = new Server(server);
 
-// 2. Define the port using the environment variable (for Render) or default to 3000.
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
-// 3. Start an HTTP server using the Express app.
-const server = app.listen(port, () => {
-    console.log(`Server listening on port ${port}!`);
-});
+app.use(express.static(join(__dirname, 'public')));
 
-// 4. Set up Express to serve static files from the "public" directory.
-app.use(express.static("public"));
+let choices = {
+  player: [] // Array to store player choices mit id, type, index
+}
 
-// Route: /controller-a ➝ index-a.html
-app.get("/move_controller", (req, res) => {
-    res.sendFile(__dirname + "/public/move_controller/index.html");
-});
+//#region load images
+// Function to recursively get all image paths
+const getImagePaths = (dir) => {
+    let results = [];
+    const list = fs.readdirSync(dir);
+    list.forEach((file) => {
+      const filePath = path.join(dir, file);
+      const stat = fs.statSync(filePath);
+      if (stat && stat.isDirectory()) {
+        // Recursively go through subdirectories
+        results = results.concat(getImagePaths(filePath));
+      } else if (/\.(jpg|jpeg|png|gif|bmp)$/i.test(file)) {
+        // Check if the file is an image (you can add other extensions if needed)
+        results.push(filePath.replace(path.join(__dirname, 'public'), '').replace(/\\/g, '/'));
+      }
+    });
+    return results;
+  };
+  
+  // Endpoint to get image paths
+  app.get('/api/images', (req, res) => {
+    const imagesDirectory = path.join(__dirname, 'public', 'assets', 'images');
+    const imagePaths = getImagePaths(imagesDirectory);
+    res.json(imagePaths); // Send the image paths as a JSON response
+    console.log("Sent image paths to client: ", imagePaths);
+  });
+//#endregion load images
 
-// Route: /controller-b ➝ index-b.html
-app.get("/jump_controller", (req, res) => {
-    res.sendFile(__dirname + "/public/jump_controller/index.html");
-});
+app.get('/', (req, res) => {
+    res.sendFile(join(__dirname, 'index.html'));
+  });
 
-// 5. Import and initialize Socket.IO with the created server.
-const socketio = require("socket.io");
-const io = socketio(server);
+server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
 
-// 6. Listen for new Socket.IO connections.
+
 io.on("connection", (socket) => {
-    console.log("New client connected: " + socket.id);
+    console.log("New client connected: " + socket.id);    
 
-    // Listen for a "maxClient" event which signals that this socket is the Max client.
+    // 
     socket.on("joinRoom", (roomName) => {
-        socket.join(roomName);
-        console.log(`Socket ${socket.id} joined room '${roomName}'`);
+      socket.join(roomName);
+      socket.data.room = roomName;
+      const room = io.sockets.adapter.rooms.get(roomName);
+      const numClients = room ? room.size : 0;
+      socket.emit("playerNumInfo", numClients)
+      choices.player[socket.id] = {};
+      console.log(`Socket ${socket.id} joined room '${roomName}' with ID ${numClients}`);
     });
 
     // When this client sends a "data" event...
     socket.on("data", (msg) => {
         console.log("Received data from " + socket.id + ": " + msg);
-        // Only forward ("broadcast") the message to the "max" room.
-        io.to("max").emit("data", msg);
         io.to("unity").emit("data", msg);
+    });
+
+    socket.on("cardsPlayer", (type, index) => {
+      console.log("Received data from " + socket.id + ": " + type + " " + index);
+
+      choices.player[socket.id].type = index;
+      for (let key in choices.player) {
+        if (key != socket.id) {
+          socket.broadcast.emit("cardsPlayer_other", key, type, index);
+        }
+      }
+      io.to("unity").emit("cardsPlayer", type, socket.id, index);
+  });
+
+    // When this client sends a "unity" event...
+    socket.on("unity", (msg) => {
+        console.log("Received data from unity" + socket.id + ": " + msg);
+        io.to("PlayerRoom").emit("unity", msg);
+    });
+
+    socket.on("log", (msg) => {
+        console.log("Received log message" + socket.id + ": " + msg);
     });
 
     // (Optional) Log when the client disconnects.
     socket.on("disconnect", () => {
-        console.log("Client disconnected: " + socket.id);
+      delete choices.player[socket.id];
+      console.log("Client disconnected: " + socket.id);
+      const room = io.sockets.adapter.rooms.get(socket.data.room);
+      const numClients = room ? room.size : 0;
+      socket.emit("playerNumInfo", numClients);
     });
 });
+
