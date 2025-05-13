@@ -14,10 +14,47 @@ const PORT = process.env.PORT || 3000;
 app.use(express.static(join(__dirname, 'public')));
 
 let choices = {
-  player: {} // Array to store player choices mit id, type, index
+  player: {} // Array to store player choices mit id = { type = index, color = customColorIndex}
 }
 
-//#region load images
+class CardInfo {
+  constructor(Health, Attack, Cost, Ability, Name) {
+    this.Health = Health;
+    this.Attack = Attack;
+    this.Cost = Cost;
+    this.Ability = Ability;
+    this.Name = Name;
+    this.Image = null; 
+  }
+}
+
+let availableCards = []; // objects
+let nonPlayableCards = []; // indexes of cards that are not playable
+let currentCardToPlay = null; // cardInfo
+
+const GamePhase = {
+  wait: "wait",
+  select: "select",
+  sacrifice: "sacrifice",
+  place: "place",
+  attack: "attack",
+  menu: "menu"
+}
+
+let currentPhase = GamePhase.select; // Initialize the current phase
+console.log("Current phase: " + currentPhase);
+let lastColorIndex = -1;
+
+const customColors = [
+    [61, 111, 165],   // coolBlue
+    [119, 166, 95],   // poisonGreen
+    [139, 46, 46],    // bloodRed
+    [136, 193, 208],  // paleCyan
+    [176, 176, 176],  // ashGray
+    [119, 92, 148]    // violetShadow
+  ];
+
+//#region load data
 // Function to recursively get all image paths
 const getImagePaths = (dir) => {
     let results = [];
@@ -42,7 +79,13 @@ const getImagePaths = (dir) => {
     const imagePaths = getImagePaths(imagesDirectory);
     res.json(imagePaths); // Send the image paths as a JSON response
   });
-//#endregion load images
+
+app.get('/api/customColors', (req, res) => {
+  res.json(customColors);
+});
+//#endregion load data
+
+
 
 app.get('/', (req, res) => {
     res.sendFile(join(__dirname, 'index.html'));
@@ -54,7 +97,9 @@ server.listen(PORT, () => {
 
 
 io.on("connection", (socket) => {
-  console.log("New client connected: " + socket.id);    
+  console.log("New client connected: " + socket.id); 
+  
+  
   //#region from player
   socket.on("joinPlayer", () => {
     socket.join("PlayerRoom");
@@ -63,9 +108,19 @@ io.on("connection", (socket) => {
     const numClients = room ? room.size : 0;
 
     let sendChoices = choices.player;
-    socket.emit("getPlayerID", numClients, sendChoices) // send player id
-    socket.broadcast.emit("updateNumPlayer", numClients, socket.id, "join"); // update number of players for other clients
     choices.player[socket.id] = {};
+    lastColorIndex = lastColorIndex+1 % customColors.length; // colorindex
+    choices.player[socket.id].colorIndex = lastColorIndex; // colorindex
+    socket.emit("getPlayerID", numClients, sendChoices) // send player id
+    socket.emit("allPlayerCards", availableCards); // send all player cards from server to clients
+    socket.emit("allPlayerNonPlayableCards", nonPlayableCards); // send all player cards from server to clients
+    socket.emit("currentCardToPlay", currentCardToPlay); // send all player cards from server to clients
+    socket.emit("setPhase", currentPhase); // send current phase to player
+    socket.broadcast.emit("updateNumPlayer", {numClients: numClients, 
+                                              socketID: socket.id, 
+                                              action: "join",
+                                              colorIndex: choices.player[socket.id].colorIndex}); // update number of players for other clients
+
     console.log(`Socket ${socket.id} joined room PlayerRoom with ID ${numClients}`);
   });
 
@@ -79,33 +134,34 @@ io.on("connection", (socket) => {
     console.log("Received data from " + socket.id + ": " + type + " " + index);
     choices.player[socket.id][type] = index;
     socket.broadcast.emit("cardsPlayer_other", socket.id, type, index);
+    io.to("unity").emit("cardsPlayer", {socketID: socket.id, 
+                                        type:type, 
+                                        index: index});
     
     // check if all players have selected the same card
     let sameCardSelected = true; 
-    let selectedCard = null;
+    let selectedCard = -1;
 
     for (const playerId in choices.player) {
       //get selected card
       const cardSelected = choices.player[playerId].cardSelected;
-      if (cardSelected == null) {
+      if (cardSelected == -1) {
         sameCardSelected = false; 
         break;
       }
 
       // Check if the cardSelected is the same for all players
-      if (selectedCard == null) {
+      if (selectedCard == -1) {
         selectedCard = cardSelected; // Set the first player's cardSelected as the reference
-      } else if (cardSelected !== selectedCard) {
+      } else if (cardSelected != selectedCard) {
         sameCardSelected = false; // Found a mismatch
         break;
       }
     }
 
-    if (sameCardSelected) {
+    if (sameCardSelected != false && selectedCard != -1 && selectedCard != null) {
       console.log("All players have selected the same card: " + selectedCard);
       io.to("unity").emit("selectedCard", selectedCard); // Notify Unity that all players have selected the same card
-      io.to("PlayerRoom").emit("setPhase", "place"); 
-      resetCards(); // Reset selected cards for all players
     } else {
       console.log("Not all players have selected the same card yet.");
     }
@@ -113,28 +169,52 @@ io.on("connection", (socket) => {
 
   //#endregion from player
 
-  //#region player to unity
-  socket.on("selectCard", (cardIndex) => {
-    console.log("Received selectCard from " + socket.id + ": " + cardIndex);
-    io.to("unity").emit("selectCard", cardIndex);
-  });
-
-  //#endregion player to unity
   //#region from unity
   socket.on("joinUnity", () => {
     socket.join("unity");
+    socket.emit("joinedRoom", "unity"); 
+    socket.emit("sendColors", customColors); // send custom colors to unity
   });
 
+  socket.on("shareData", () => {
+    socket.emit("allPlayerChoices", choices.player); // send all player cards from server to clients
+    socket.emit("allPlayerCards", availableCards); // send all player cards from server to clients
+    socket.emit("allPlayerNonPlayableCards", nonPlayableCards); // send all player cards from server to clients
+    socket.emit("currentCardToPlay", currentCardToPlay); // send all player cards from server to clients
 
-  socket.on("setPhase", (phase, values) => {
-    // TODO für z.b. select phase von unity an client welche karten
-    io.to("PlayerRoom").emit("setPhase", phase, values);
+    socket.data.room = "PlayerRoom";
+    const room = io.sockets.adapter.rooms.get("PlayerRoom");
+    const numClients = room ? room.size : 0;
+    socket.emit("updateNumPlayer", {numClients: numClients, 
+                                          socketID: "", 
+                                          action: "get",
+                                          colorIndex: ""}); // update number of players for other clients
   });
+
 
   socket.on("setPhase", (phase) => {
     io.to("PlayerRoom").emit("setPhase", phase);
+    currentPhase = GamePhase[phase]; // Update the current phase
+    resetCards(); // Reset selected cards for all players
   });
 
+  socket.on("cardInformationPlayer", (i, cardInfo) => {
+    console.log("Received card information from Unity: " + i + " " + cardInfo);
+    if (i >= 0){
+      availableCards[i] = new CardInfo(cardInfo.Health, cardInfo.Attack, cardInfo.Cost, cardInfo.Ability, cardInfo.Name);
+      io.to("PlayerRoom").emit("cardInformationPlayer", i, cardInfo); // Send the card information to all players
+    } else if (i == -1){
+      currentCardToPlay = new CardInfo(cardInfo.Health, cardInfo.Attack, cardInfo.Cost, cardInfo.Ability, cardInfo.Name);
+      console.log("Current card to play: " + currentCardToPlay.Name);
+      io.to("PlayerRoom").emit("currentCardToPlay", currentCardToPlay); // send all player cards from server to clients
+    }
+  });
+
+  socket.on("nonPlayableCardsPlayer", (nonPlayableCardsTemp) => {
+    console.log("Received non-playable cards from Unity: " + nonPlayableCardsTemp);
+    nonPlayableCards = nonPlayableCardsTemp;
+    io.to("PlayerRoom").emit("nonPlayableCardsPlayer", nonPlayableCards); // Send the non-playable cards to all players
+  });
 
   //#endregion from unity
   // logs to display in server console
@@ -146,16 +226,24 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     delete choices.player[socket.id];
     console.log("Client disconnected: " + socket.id);
-    const room = io.sockets.adapter.rooms.get(socket.data.room);
+    const room = io.sockets.adapter.rooms.get("PlayerRoom");
     const numClients = room ? room.size : 0;
-    socket.broadcast.emit("updateNumPlayer", numClients, socket.id, "disconnect"); // update number of players for other clients
+    socket.broadcast.emit("updateNumPlayer", {numClients: numClients, 
+                                          socketID: socket.id, 
+                                          action: "disconnect",
+                                          colorIndex: -1}); // update number of players for other clients
+    let sendChoices = choices.player;
+    socket.emit("allPlayerChoices", sendChoices); // send player choices to unity
   });
 });
 
 function resetCards(){
   for (const playerId in choices.player) {
-    choices.player[playerId].cardSelected = null; // Reset the selected card for each player
-    choices.player[playerId].cardPreview = null; // Reset the placed card for each player
+    choices.player[playerId].cardSelected = -1; // Reset the selected card for each player
+    choices.player[playerId].cardPreview = -1; // Reset the placed card for each player
   }
+  currentCardToPlay = null; // Reset the current card to play
+  availableCards = []; // Reset the available cards
+  nonPlayableCards = []; // Reset the non-playable cards
   console.log("Reset selected cards for all players.");
 }
