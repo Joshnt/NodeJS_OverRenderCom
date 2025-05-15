@@ -225,8 +225,9 @@ io.on("connection", (socket) => {
 //#region functions
 function resetCards(){
   for (const playerId in choices.player) {
-    choices.player[playerId].cardSelected = -1; // Reset the selected card for each player
-    choices.player[playerId].cardPreview = -1; // Reset the placed card for each player
+    choices.player[playerId].selectedCards = {}; // Reset selected cards for each player
+    choices.player[playerId].buttonPressed = false; // Reset button pressed state for each player
+    choices.player[playerId].cardPreview = -1; // Reset card preview index for each player
   }
   currentCardToPlay = null; // Reset the current card to play
   availableCards = []; // Reset the available cards
@@ -259,7 +260,7 @@ function shareDataPlayer(socket) {
   socket.emit("currentCardToPlay", currentCardToPlay); // send all player cards from server to clients
 }
 
-/* function setPhase(socket, phase) {
+function setPhase(socket, phase) {
   socket.emit("setPhase", phase);
 }
 
@@ -311,7 +312,7 @@ function checkSameSelection() {
     }
   }
 }
- */
+
 function setPlayerCursorPostion(socketID, clientType) {
   choices[clientType][socketID].positionOffset.side.x = Math.random();
   choices[clientType][socketID].positionOffset.side.y = Math.random() * 0.35;

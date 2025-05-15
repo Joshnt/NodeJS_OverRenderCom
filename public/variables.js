@@ -74,6 +74,7 @@ const arrowPositions = {
 }
 
 const baseTint = [120, 70, 20]; // Reddish-brown, simulates dim warm lighting
+const greyTint = [100, 100, 100]; // Greyish tint for disabled cards
 
 let mainFont;
 let cardFont;

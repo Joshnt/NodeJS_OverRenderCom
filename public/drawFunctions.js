@@ -122,8 +122,6 @@ function draw() {
                 let yPos = UIRects.buttons.middleLow.y;
                 let yOffset = UIRects.buttons.middleLow.h * playerChoice.positionOffset.middle.x;
                 image(cursorImg, xPos + xOffset, yPos + yOffset, UIRects.customCursors.w1, UIRects.customCursors.h1);
-                console.log("xpos: " + (xPos + xOffset) + " ypos: " + (yPos + yOffset));
-                console.log("yoffset: " + yOffset);
               }else if (Object.keys(playerChoice.selectedCards).length !== 0 || playerChoice.cardPreview != -1) {
                 // print first selected card
                 if (Object.keys(playerChoice.selectedCards).length !== 0) {
@@ -198,6 +196,10 @@ function drawCard(cardPosition, cardIndex) {
   let cardRect = UIRects.cards[cardPosition];
   let imageRect = UIRects.images[cardPosition];
   let card = availableCards[cardIndex];
+  // check if cardIndex is part of the nonplayableCards array
+  if (nonPlayableCards.includes(cardIndex)) {
+    tint(greyTint);
+  }
   if (card == null) {console.warn("Card is null "+ cardIndex); return;}
   //base
   image(imageLookUp["card_empty.png"], cardRect.x, cardRect.y, cardRect.w, cardRect.h);
@@ -231,5 +233,8 @@ function drawCard(cardPosition, cardIndex) {
 
   // Attack
   text(card.Attack, cardRect.x - cardRect.w * 0.26, cardRect.y + cardRect.h * 0.225);
+
+  //reset tint
+  tint(baseTint); // Reddish-brown, simulates dim warm lighting
 }
 

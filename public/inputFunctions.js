@@ -90,9 +90,10 @@ function pressSelectPhase(){
     }
 
     if (!(informationPlayer.previewCardIndex in informationPlayer.selectedCards)) { // previewcard not selected
-      if (Object.keys(informationPlayer.selectedCards).length < allowCardSelection) {
+      //if (Object.keys(informationPlayer.selectedCards).length < allowCardSelection) {
+        informationPlayer.selectedCards = {};
         informationPlayer.selectedCards[informationPlayer.previewCardIndex] = true;
-      }
+      //}
     } else{
       delete informationPlayer.selectedCards[informationPlayer.previewCardIndex];
     }
