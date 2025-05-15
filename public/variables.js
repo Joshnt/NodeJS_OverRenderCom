@@ -7,8 +7,12 @@ let isMobile = false;
 // client information
 let ownIdOnServer = null;
 let playerChoices = {};
-let previewCardIndex = 0;
-let selectedCard = -1;
+let allowCardSelection = 1;
+let informationPlayer = { // this client as player
+  previewCardIndex: -1,
+  selectedCards: {}, 
+  buttonPressed: false
+};
 
 // card/ game information
 const GamePhase = {
@@ -61,17 +65,18 @@ const cardPositions = {
 const arrowPositions = {
   left: {
     x: 0.05,
-    y: 0.95
+    y: 0.9
   },
   right: {
     x: 0.95,
-    y: 0.95
+    y: 0.9
   }
 }
 
 const baseTint = [120, 70, 20]; // Reddish-brown, simulates dim warm lighting
 
 let mainFont;
+let cardFont;
 let images = [];
 let imageLookUp = {}; // Object to store loaded images with their filenames as keys
 let customColors = [];
@@ -88,6 +93,30 @@ let UIRects = {
     left2: {    },
     right2: {    },
     middle: {    }
+  },
+  images: {
+    left: {    },
+    right: { },
+    left2: {    },
+    right2: {    },
+    middle: {    }
+  },
+  costs: {
+    left: {    },
+    right: { },
+    left2: {    },
+    right2: {    },
+    middle: {    }
+  },
+  abilities: {
+    left: {    },
+    right: { },
+    left2: {    },
+    right2: {    },
+    middle: {    }
+  },
+  buttons:{
+    middleLow:{}
   },
   customCursors: {
   },

@@ -37,27 +37,11 @@ function press(){
       // turn right
       switch (helpState.selectPhase) {
         case 0:
-          if (isPressedOverCenteredImage(UIRects.cards.middle)) {
-            if (selectedCard != previewCardIndex) {
-              socket.emit("cardsPlayer", "cardSelected", previewCardIndex);
-              socket.emit("cardsPlayer", "cardPreview", -1);
-              selectedCard = previewCardIndex;
-              helpState.selectPhase++;
-            }
-            break;
-          }
+          pressSelectPhase();
+          helpState.selectPhase++;
+          break;
         case 1:
-          if (isPressedOverCenteredImage(UIRects.cards.middle)) {
-            if (selectedCard != previewCardIndex) {
-              socket.emit("cardsPlayer", "cardSelected", previewCardIndex);
-              socket.emit("cardsPlayer", "cardPreview", -1);
-              selectedCard = previewCardIndex;
-            } else{
-              socket.emit("cardsPlayer", "cardSelected", -1);
-              socket.emit("cardsPlayer", "cardPreview", previewCardIndex);
-              selectedCard = null;
-            }
-          }
+          pressSelectPhase();
           helpState.selectPhase++;
           break;
         case 2:
@@ -80,32 +64,47 @@ function press(){
 
 function pressSelectPhase(){
   if (isPressedOverCenteredImage(UIRects.arrows.right)){
-    if (previewCardIndex+1 < numCards) {
-      previewCardIndex++;
-      console.log("previewCardIndex: " + previewCardIndex);
-      if (selectedCard == null) {
-        socket.emit("cardsPlayer", "cardPreview", previewCardIndex);
+    if (informationPlayer.previewCardIndex+1 < numCards) {
+      informationPlayer.previewCardIndex++;
+      if (Object.keys(informationPlayer.selectedCards).length === 0) {
+        socket.emit("informationPlayer",informationPlayer);
       }
     }
   }else if (isPressedOverCenteredImage(UIRects.arrows.left)){
-    if (previewCardIndex > 0) {
-      previewCardIndex--;
-      console.log("previewCardIndex: " + previewCardIndex);
-      if (selectedCard == null) {
-        console.log("switched previewCardIndex: " + previewCardIndex);
-        socket.emit("cardsPlayer", "cardPreview", previewCardIndex);
+    if (informationPlayer.previewCardIndex > 0) {
+      informationPlayer.previewCardIndex--;
+      if (Object.keys(informationPlayer.selectedCards).length === 0) {
+        socket.emit("informationPlayer",informationPlayer);
       }
     }
   } else if (isPressedOverCenteredImage(UIRects.cards.middle)) {
-    if (selectedCard != previewCardIndex) {
-      socket.emit("cardsPlayer", "cardSelected", previewCardIndex);
-      socket.emit("cardsPlayer", "cardPreview", -1);
-      selectedCard = previewCardIndex;
-    } else{
-      socket.emit("cardsPlayer", "cardSelected", -1);
-      socket.emit("cardsPlayer", "cardPreview", previewCardIndex);
-      selectedCard = null;
+    if (numCards == 0) {
+      message = "We don't have any cards to play!";
+      fade = 255;
+      return;
     }
+    if (informationPlayer.buttonPressed == true) {
+      message = "Do you want to pick a card or fight?!";
+      fade = 255;
+      return;
+    }
+
+    if (!(informationPlayer.previewCardIndex in informationPlayer.selectedCards)) { // previewcard not selected
+      if (Object.keys(informationPlayer.selectedCards).length < allowCardSelection) {
+        informationPlayer.selectedCards[informationPlayer.previewCardIndex] = true;
+      }
+    } else{
+      delete informationPlayer.selectedCards[informationPlayer.previewCardIndex];
+    }
+    socket.emit("informationPlayer",informationPlayer);
+  } else if (isPressedOverCenteredImage(UIRects.buttons.middleLow)) {
+    if (!informationPlayer.buttonPressed) {
+      // init info = delete
+      initInformationPlayer();
+    }
+    informationPlayer.buttonPressed = !informationPlayer.buttonPressed;
+    console.log("button pressed: " + informationPlayer.buttonPressed);
+    socket.emit("informationPlayer",informationPlayer);
   }
 }
 
@@ -121,18 +120,10 @@ function keyPressed() {
       console.log("numCards: " + numCards);
     }
     if (key === 'm') {
-      previewCardIndex++;
-      console.log("previewCardIndex: " + previewCardIndex);
+      informationPlayer.previewCardIndex++;
     }
     if (key === 'n') {
-      previewCardIndex--;
-      console.log("previewCardIndex: " + previewCardIndex);
-    }
-    if (key === 's') {
-      currentPhase = GamePhase.select;
-      console.log("currentPhase: " + currentPhase);
-      socket.emit("cardsPlayer", "cardPreview", previewCardIndex);
-    }
+      informationPlayer.previewCardIndex--;}
   }
 }
 

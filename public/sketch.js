@@ -1,9 +1,11 @@
 
 
 function preload() {
-  mainFont = loadFont('/assets/ElderGodsBB.ttf');
+  mainFont = loadFont('/assets/fonts/ElderGodsBB.ttf');
+  cardFont = loadFont('/assets/fonts/vicioushunger.ttf');
   // load images - full chatGPT
   loadJSON('/api/images', (imageList) => {
+
     if (!imageList || !Array.isArray(imageList)) {
       console.error("Invalid image list:", imageList);
       return;
@@ -46,15 +48,24 @@ function setup() {
 
   socket.on("allPlayerCards", (cards) => {
     availableCards = cards;
-    for (i = 0; i < availableCards.length; i++) {
-      const formattedName = `portrait_${availableCards[i].Name.toLowerCase().replace(/\s+/g, "_")}.png`;
-      availableCards[i].Image = imageLookUp[formattedName];
+    for (const card of availableCards) {
+      let formattedName = `portrait_${card.Name.toLowerCase().replace(/\s+/g, "_")}.png`;
+      card.Image = imageLookUp[formattedName];
     }
     numCards = availableCards.length;
+    if (numCards > 0 && informationPlayer.previewCardIndex == -1) {
+      informationPlayer.previewCardIndex = 0;
+    }    
+    
+  });
+
+  socket.on("allowPlayerCardSelection", (intAllowed) => {
+    allowCardSelection = intAllowed;
   });
 
   socket.on("allPlayerNonPlayableCards", (cards) => {
     nonPlayableCards = cards;
+    
   });
 
   socket.on("currentCardToPlay", (card) => {
@@ -63,16 +74,17 @@ function setup() {
       const formattedName = `portrait_${currentCardToPlay.Name.toLowerCase().replace(/\s+/g, "_")}.png`;
       currentCardToPlay.Image = imageLookUp[formattedName];
     }
+    
   });
 
   socket.on("allPlayerChoices", (choices) => {
     playerChoices = choices;
     removeSelfFromChoices();
+    
   });
 
   // Phase from server
   socket.on("setPhase", (phase) => {
-    resetSelection();
     setPhaseBehavior(phase);
   });
 
@@ -108,23 +120,25 @@ function isMobileDevice() {
 
 
 function previewCardWithIndex(index) {
-  previewCardIndex = index;
+  informationPlayer.previewCardIndex = index;
   
   if (cardSelected == -1) {
-    socket.emit("cardsPlayer", "cardPreview", previewCardIndex);
+    socket.emit("informationPlayer",informationPlayer);
   }
 }
 
 function setPhaseBehavior(phase) {
+  initInformationPlayer();
+  console.log("setPhaseBehavior: " + phase);
   switch (phase) {
     case "wait":
-      currentPhase = GamePhase.wait;
-      previewCardIndex = 0;
-      selectedCard = null;
-      socket.emit("cardsPlayer", "cardPreview", previewCardIndex);
       break;
     case "select":
+      console.log("select phase");
       currentPhase = GamePhase.select;
+      if (numCards > 0) {
+        informationPlayer.previewCardIndex = 0;
+      }    
       //TODO
       break;
     case "place":
@@ -150,6 +164,5 @@ function setPhaseBehavior(phase) {
 }
 
 function emitAllOwnChoices(){
-  socket.emit("cardsPlayer", "cardSelected", selectedCard);
-  socket.emit("cardsPlayer", "cardPreview", previewCardIndex);
+  socket.emit("informationPlayer",informationPlayer);
 }

@@ -31,6 +31,7 @@ class CardInfo {
 let availableCards = []; // objects
 let nonPlayableCards = []; // indexes of cards that are not playable
 let currentCardToPlay = null; // cardInfo
+let allowPlayerCardSelection = 1; // number of cards that can be selected
 
 const GamePhase = {
   wait: "wait",
@@ -51,7 +52,6 @@ const customColors = [
   ]
 
 let currentPhase = GamePhase.select; // Initialize the current phase
-console.log("Current phase: " + currentPhase);
 let lastColorIndex = -1;
 
 //#region load data
@@ -104,9 +104,12 @@ io.on("connection", (socket) => {
   socket.on("joinPlayer", () => {
     socket.join("PlayerRoom");
     choices.player[socket.id] = {};
-    lastColorIndex = lastColorIndex+1 % customColors.length; // colorindex
+    lastColorIndex = (lastColorIndex+1) % customColors.length; // colorindex
+    console.log("Last color index: " + lastColorIndex + " customColors.length: " + customColors.length);  
     choices.player[socket.id].colorIndex = lastColorIndex; // colorindex
+    console.log(choices.player[socket.id] + choices.player[socket.id].colorindex);
     choices.player[socket.id].color = customColors[lastColorIndex]; // color
+    console.log("Player color: " + choices.player[socket.id].color);
     choices.player[socket.id].positionOffset = {
       side: {},
       middle: {}
@@ -114,18 +117,17 @@ io.on("connection", (socket) => {
     setPlayerCursorPostion(socket.id, "player");
   
     socket.emit("init", choices.player, socket.id);
-    setPhase(socket, currentPhase); // set phase for player
     shareDataRoom("PlayerRoom"); // share data with all players
     shareDataRoom("unity"); // share data with unity
+    setPhase(socket, currentPhase); // set phase for player
   });
 
-  socket.on("cardsPlayer", (type, index) => {
-    choices.player[socket.id][type] = index;
+  socket.on("informationPlayer", (informationPlayerObject) => {
+    updateChoicesPlayer(socket.id, informationPlayerObject); // update player choices object
     setPlayerCursorPostion(socket.id, "player");
     shareDataRoom("PlayerRoom"); // share data with all players
     shareDataRoom("unity"); // share data with unity
-    
-    checkSameSelectedCard(); // Check if all players have selected the same card    
+    //checkSameSelection(); // Check if all players have selected the same card    
   });
 
   //#endregion from player
@@ -142,9 +144,9 @@ io.on("connection", (socket) => {
 
 
   socket.on("setPhaseFromUnity", (phase) => {
-    io.to("PlayerRoom").emit("setPhase", phase);
     currentPhase = GamePhase[phase]; // Update the current phase
     resetCards(); // Reset selected cards for all players
+    io.to("PlayerRoom").emit("setPhase", phase);
   });
 
   socket.on("cardInformationFromUnityForPlayer", (cards) => {
@@ -159,7 +161,6 @@ io.on("connection", (socket) => {
         card.Ability,
         card.Name
       ));
-      console.log("Available Cards:", availableCards);
     } else {
       console.error("Invalid AvailableCards data:", AvailableCards);
     }
@@ -167,7 +168,6 @@ io.on("connection", (socket) => {
     // Process NonPlayableCards
     if (Array.isArray(NonPlayableCards)) {
       nonPlayableCards = NonPlayableCards;
-      console.log("Non-Playable Cards:", nonPlayableCards);
     } else {
       console.error("Invalid NonPlayableCards data:", NonPlayableCards);
     }
@@ -181,10 +181,26 @@ io.on("connection", (socket) => {
         CurrentCardToPlay.Ability,
         CurrentCardToPlay.Name
       );
-      console.log("Current Card to Play:", currentCardToPlay);
     } else {
       currentCardToPlay = null;
-      console.log("No Current Card to Play.");
+    }
+
+    switch (currentPhase) {
+      case GamePhase.select:
+        allowPlayerCardSelection = 1;
+        break;
+      case GamePhase.place:
+        allowPlayerCardSelection = 1;
+        break;
+      case GamePhase.sacrifice:
+        if (currentCardToPlay) {
+          allowPlayerCardSelection = currentCardToPlay.Cost;
+        }
+        else{allowPlayerCardSelection = 1;}
+        break;
+      default: // menu, attack, wait
+        allowPlayerCardSelection = 0;
+        break;
     }
 
     shareDataRoom("PlayerRoom"); // share data with all players
@@ -205,6 +221,8 @@ io.on("connection", (socket) => {
   });
 });
 
+
+//#region functions
 function resetCards(){
   for (const playerId in choices.player) {
     choices.player[playerId].cardSelected = -1; // Reset the selected card for each player
@@ -214,13 +232,22 @@ function resetCards(){
   availableCards = []; // Reset the available cards
   nonPlayableCards = []; // Reset the non-playable cards
   console.log("Reset selected cards for all players.");
+  shareDataAll(); // Share the updated data with all players
 }
 
+function shareDataAll(){
+  io.emit("allPlayerChoices", choices.player); // send all player cards from server to clients
+  io.emit("allPlayerCards", availableCards); // send all player cards from server to clients
+  io.emit("allPlayerNonPlayableCards", nonPlayableCards); // send all player cards from server to clients
+  io.emit("allowPlayerCardSelection", allowPlayerCardSelection); // send all player cards from server to clients
+  io.emit("currentCardToPlay", currentCardToPlay); // send all player cards from server to clients
+}
 
 function shareDataRoom(room) {
   io.to(room).emit("allPlayerChoices", choices.player); // send all player cards from server to clients
   io.to(room).emit("allPlayerCards", availableCards); // send all player cards from server to clients
   io.to(room).emit("allPlayerNonPlayableCards", nonPlayableCards); // send all player cards from server to clients
+  io.to(room).emit("allowPlayerCardSelection", allowPlayerCardSelection); // send all player cards from server to clients
   io.to(room).emit("currentCardToPlay", currentCardToPlay); // send all player cards from server to clients
 }
 
@@ -228,49 +255,76 @@ function shareDataPlayer(socket) {
   socket.emit("allPlayerChoices", choices.player); // send all player cards from server to clients
   socket.emit("allPlayerCards", availableCards); // send all player cards from server to clients
   socket.emit("allPlayerNonPlayableCards", nonPlayableCards); // send all player cards from server to clients
+  socket.emit("allowPlayerCardSelection", allowPlayerCardSelection); // send all player cards from server to clients
   socket.emit("currentCardToPlay", currentCardToPlay); // send all player cards from server to clients
 }
 
-function setPhase(socket, phase) {
+/* function setPhase(socket, phase) {
   socket.emit("setPhase", phase);
 }
 
-function checkSameSelectedCard() {
+function checkSameSelection() {
   let sameCardSelected = true; 
-  let selectedCard = -1;
+  let buttonPressed = true;
+  let selectedCards = {};
+
+  for (const playerId in choices.player) {
+    //get button pressed
+    const buttonPress = choices.player[playerId].buttonPressed;
+
+    if (!buttonPress) {
+      buttonPressed = false; // Not all players have selected the same card
+      break;
+    }
+  }
+
+  if (buttonPressed != false) {
+    io.to("unity").emit("buttonPressed"); // Notify Unity that all players have selected the same card
+    console.log("All players pressed the button.");
+    return;
+  }
 
   for (const playerId in choices.player) {
     //get selected card
-    const cardSelected = choices.player[playerId].cardSelected;
-    if (cardSelected == -1) {
-      sameCardSelected = false; 
+    const cardSelected = choices.player[playerId].selectedCards;
+    if (Object.keys(cardSelected).length != allowPlayerCardSelection) {
+      sameCardSelected = false; // Not all players have selected the same card
       break;
     }
 
-    // Check if the cardSelected is the same for all players
-    if (selectedCard == -1) {
-      selectedCard = cardSelected; // Set the first player's cardSelected as the reference
-    } else if (cardSelected != selectedCard) {
-      sameCardSelected = false; // Found a mismatch
+    for (const selCard in cardSelected) {
+      selectedCards[selCard] = true;
+    }
+
+    if (Object.keys(selectedCards).length > allowPlayerCardSelection) {
+      sameCardSelected = false; // Not all players have selected the same card
       break;
     }
   }
 
-  if (sameCardSelected != false && selectedCard != -1 && selectedCard != null) {
-    console.log("All players have selected the same card: " + selectedCard);
-    io.to("unity").emit("selectedCard", selectedCard); // Notify Unity that all players have selected the same card
-  } else {
-    console.log("Not all players have selected the same card yet.");
+
+  if (sameCardSelected != false && selectedCards != null) {
+    for (const selCard in selectedCards) {
+      if (selCard != "-1") {
+        io.to("unity").emit("selectedCard", selCard); // Notify Unity that all players have selected the same card
+      }
+    }
   }
 }
-
+ */
 function setPlayerCursorPostion(socketID, clientType) {
   choices[clientType][socketID].positionOffset.side.x = Math.random();
-  choices[clientType][socketID].positionOffset.side.y = Math.random() * 0.45;
-  choices[clientType][socketID].positionOffset.middle.x = (Math.random() * (0.4 - 0.25) + 0.25) * (Math.random() < 0.5 ? -1 : 1); // Random float between -0.4 and -0.25 or 0.25 and 0.4
-  choices[clientType][socketID].positionOffset.middle.y = Math.random() * 0.45;
+  choices[clientType][socketID].positionOffset.side.y = Math.random() * 0.35;
+  choices[clientType][socketID].positionOffset.middle.x = (Math.random() * (0.35 - 0.25) + 0.25) * (Math.random() < 0.5 ? -1 : 1); // Random float between -0.4 and -0.25 or 0.25 and 0.4
+  choices[clientType][socketID].positionOffset.middle.y = Math.random() * 0.35;
 }
 
 function demandPhase(phase) {
   io.to("unity").emit("demandPhase", phase);
+}
+
+function updateChoicesPlayer(socketID, informationPlayerObject) {
+  choices.player[socketID].selectedCards = informationPlayerObject.selectedCards;
+  choices.player[socketID].cardPreview = informationPlayerObject.previewCardIndex;
+  choices.player[socketID].buttonPressed = informationPlayerObject.buttonPressed;
 }

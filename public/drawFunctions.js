@@ -19,12 +19,11 @@ function draw() {
       //#region cards & cursor
       imageMode(CENTER);
       // draw righter card
-      if (previewCardIndex+2 < numCards) {
-        let cardRect = getCardRect("right2");
-        image(imageLookUp["card_empty.png"], cardRect.x, cardRect.y, cardRect.w, cardRect.h);
+      if (informationPlayer.previewCardIndex+2 < numCards) {
+        drawCard("right2", informationPlayer.previewCardIndex+2);
       }
       // draw selected cursor hand
-      if (selectedCard == previewCardIndex+2) {
+      if (informationPlayer.previewCardIndex+2 in informationPlayer.selectedCards) {
         push(); // Save the current transformation state
         translate(UIRects.cards.right2.x + UIRects.cards.right2.w / 2.5, UIRects.cards.right2.y - (UIRects.cards.right2.h * 0.48));
         scale(-1, 1); // Flip vertically
@@ -32,12 +31,11 @@ function draw() {
         pop(); // Restore the original transformation state
       }
       // draw right card
-      if (previewCardIndex+1 < numCards) {
-        let cardRect = getCardRect("right");
-        image(imageLookUp["card_empty.png"], cardRect.x, cardRect.y, cardRect.w, cardRect.h);
+      if (informationPlayer.previewCardIndex+1 < numCards) {
+        drawCard("right", informationPlayer.previewCardIndex+1);
       }
       // draw selected cursor hand
-      if (selectedCard == previewCardIndex+1) {
+      if (informationPlayer.previewCardIndex+1 in informationPlayer.selectedCards) {
         push(); // Save the current transformation state
         translate(UIRects.cards.right.x + UIRects.cards.right.w / 2.6, UIRects.cards.right.y - (UIRects.cards.right.h * 0.48));
         scale(-1, 1); // Flip vertically
@@ -45,99 +43,139 @@ function draw() {
         pop(); // Restore the original transformation state
       }
       // draw lefter card
-      if (previewCardIndex > 1) {
-        let cardRect = getCardRect("left2");
-        image(imageLookUp["card_empty.png"], cardRect.x, cardRect.y, cardRect.w, cardRect.h);
+      if (informationPlayer.previewCardIndex > 1) {
+        drawCard("left2", informationPlayer.previewCardIndex-2);
       }
       // draw selected cursor hand
-      if (selectedCard == previewCardIndex-2) {
+      if (informationPlayer.previewCardIndex-2 in informationPlayer.selectedCards) {
         image(imageLookUp["pickup_cursor_down.png"], UIRects.cards.left2.x - UIRects.cards.left2.w /2.75, UIRects.cards.left2.y - (UIRects.cards.left2.h *0.45), UIRects.customCursors.w2 * cardPositions.cardOffset2.scale, UIRects.customCursors.h2 * cardPositions.cardOffset2.scale); // oben rechts
       }
       // draw left card
-      if (previewCardIndex > 0) {
-        let cardRect = getCardRect("left");
-        image(imageLookUp["card_empty.png"], cardRect.x, cardRect.y, cardRect.w, cardRect.h);
+      if (informationPlayer.previewCardIndex > 0) {
+        drawCard("left", informationPlayer.previewCardIndex-1);
       }
       // draw selected cursor hand
-      if (selectedCard == previewCardIndex-1) {
+      if (informationPlayer.previewCardIndex-1 in informationPlayer.selectedCards) {
         image(imageLookUp["pickup_cursor_down.png"], UIRects.cards.left.x - UIRects.cards.left.w /2.75, UIRects.cards.left.y - (UIRects.cards.left.h *0.45), UIRects.customCursors.w2 * cardPositions.cardOffset1.scale, UIRects.customCursors.h2 * cardPositions.cardOffset1.scale); // oben links
       }
       // middle card
-      let cardRect = getCardRect("middle");
-      image(imageLookUp["card_empty.png"], cardRect.x, cardRect.y, cardRect.w, cardRect.h);
+      if (numCards > 0) {
+        drawCard("middle", informationPlayer.previewCardIndex);
+      }
 
       //#endregion cards
       //#region arrows
-      if (previewCardIndex+1 < numCards) {
+      if (informationPlayer.previewCardIndex+1 < numCards) {
         let rightArrowRect = getArrowRect("right");
         image(imageLookUp["arrow_right.png"], rightArrowRect.x, rightArrowRect.y, rightArrowRect.w, rightArrowRect.h);
       }
       // draw left card
-      if (previewCardIndex > 0) {
+      if (informationPlayer.previewCardIndex > 0) {
         let leftArrowRect = getArrowRect("left");
         image(imageLookUp["arrow_left.png"], leftArrowRect.x, leftArrowRect.y, leftArrowRect.w, leftArrowRect.h);
       }
       //#endregion arrows
       //#region cursor
       // cursor middle card
-      if (selectedCard == previewCardIndex) {
+      if (informationPlayer.previewCardIndex in informationPlayer.selectedCards) {
           image(imageLookUp["pickup_cursor_down.png"], UIRects.cards.middle.x - UIRects.cards.middle.w /2.75 , UIRects.cards.middle.y - (UIRects.cards.middle.h*0.45), UIRects.customCursors.w2, UIRects.customCursors.h2); // oben links
       }
 
+
+      //#region buttons
+      // draw buttons
+      imageMode(CENTER);
+      image(imageLookUp["button.png"], UIRects.buttons.middleLow.x, UIRects.buttons.middleLow.y, UIRects.buttons.middleLow.w, UIRects.buttons.middleLow.h);
+      fill(0);
+      noStroke();
+      textAlign(CENTER, CENTER);
+      textFont(cardFont);
+      textSize(UIRects.buttons.middleLow.w * 0.25);
+      switch (currentPhase) {
+        case GamePhase.wait:
+          break;
+        case GamePhase.select:
+          text("Fight", UIRects.buttons.middleLow.x, UIRects.buttons.middleLow.y);
+          break;
+      }
+      //#endregion buttons
+
+      if (informationPlayer.buttonPressed) {
+        image(imageLookUp["pickup_cursor_down.png"], UIRects.buttons.middleLow.x - UIRects.buttons.middleLow.w /2.75 , UIRects.buttons.middleLow.y - (UIRects.buttons.middleLow.h*0.45), UIRects.customCursors.w2/2, UIRects.customCursors.h2/2); // oben links
+      }
+
       // draw hover and select of other players
+      //#region other players
       if (drawPlayerCursors) {
         if (Object.keys(playerChoices).length > 0 && (!showHelp || (showHelp && helpState.selectPhase >= 2))) {
             for (const key of Object.keys(playerChoices)) {
-            let playerChoice = playerChoices[key];
-            let cursorImg;
-            let indexOther;
-            let cardRect;
+              let playerChoice = playerChoices[key];
+              let cursorImg;
+              let indexOtherArray = [];
+              let cardRect;
 
-            if (playerChoice.cardSelected != -1 || playerChoice.cardPreview != -1) {
-                if (playerChoice.cardSelected != -1) {
+              if (playerChoice.buttonPressed) {
                 cursorImg = imageLookUp["default_cursor.png"];
-                indexOther = playerChoice.cardSelected;
                 tint(playerChoice.color); // R, G, B, Alpha (0–255)
+                let xPos = UIRects.buttons.middleLow.x;
+                let xOffset = UIRects.buttons.middleLow.w * playerChoice.positionOffset.middle.x;
+                let yPos = UIRects.buttons.middleLow.y;
+                let yOffset = UIRects.buttons.middleLow.h * playerChoice.positionOffset.middle.x;
+                image(cursorImg, xPos + xOffset, yPos + yOffset, UIRects.customCursors.w1, UIRects.customCursors.h1);
+                console.log("xpos: " + (xPos + xOffset) + " ypos: " + (yPos + yOffset));
+                console.log("yoffset: " + yOffset);
+              }else if (Object.keys(playerChoice.selectedCards).length !== 0 || playerChoice.cardPreview != -1) {
+                // print first selected card
+                if (Object.keys(playerChoice.selectedCards).length !== 0) {
+                  cursorImg = imageLookUp["default_cursor.png"];
+                  indexOtherArray = Object.keys(playerChoice.selectedCards).map(Number);
+                  tint(playerChoice.color); // R, G, B, Alpha (0–255)
                 } else {
-                cursorImg = imageLookUp["default_cursor_small.png"];
-                indexOther = playerChoice.cardPreview;
-                tint(playerChoice.color[0], playerChoice.color[1], playerChoice.color[2], 150); // R, G, B, Alpha (0–255)
+                  cursorImg = imageLookUp["default_cursor_small.png"];
+                  indexOtherArray[0] = playerChoice.cardPreview;
+                  tint(playerChoice.color[0], playerChoice.color[1], playerChoice.color[2], 150); // R, G, B, Alpha (0–255)
                 }
-                // TODO statt getCardRect die UIRects.cards benutzen
-                if (indexOther == previewCardIndex) {
-                cardRect = getCardRect("middle");
-                image(cursorImg, cardRect.x + (cardRect.w * playerChoice.positionOffset.middle.x) , cardRect.y - (cardRect.h * playerChoice.positionOffset.middle.y), UIRects.customCursors.w1, UIRects.customCursors.h1);
-                } else if (indexOther == previewCardIndex+1) { 
-                cardRect = getCardRect("right");
-                let cardRectBefore = getCardRect("middle");
-                let xPosVisibleStart = Math.max(cardRectBefore.xRight,  cardRect.xLeft);
-                let xPos = cardRect.xRight - 20 - (playerChoice.positionOffset.side.x*(cardRect.xRight-xPosVisibleStart))
-                image(cursorImg, xPos, cardRect.y - (cardRect.h * playerChoice.positionOffset.side.y), UIRects.customCursors.w1, UIRects.customCursors.h1);
-                } else if (indexOther == previewCardIndex+2) { 
-                cardRect = getCardRect("right2");
-                let cardRectBefore = getCardRect("right");
-                let xPosVisibleStart = Math.max(cardRectBefore.xRight,  cardRect.xLeft);
-                let xPos = cardRect.xRight - 20 - (playerChoice.positionOffset.side.x*(cardRect.xRight-xPosVisibleStart))
-                image(cursorImg, xPos, cardRect.y - (cardRect.h * playerChoice.positionOffset.side.y), UIRects.customCursors.w1, UIRects.customCursors.h1);
-                } else if (indexOther == previewCardIndex-1) { 
-                cardRect = getCardRect("left");
-                let cardRectBefore = getCardRect("middle");
-                let xPosVisibleStart = Math.min(cardRectBefore.xLeft,  cardRect.xRight);
-                let xPos = cardRect.xLeft + 20 + (playerChoice.positionOffset.side.x*(xPosVisibleStart-cardRect.xLeft))
-                image(cursorImg, xPos, cardRect.y - (cardRect.h * playerChoice.positionOffset.side.y), UIRects.customCursors.w1, UIRects.customCursors.h1);
-                } else if (indexOther == previewCardIndex-2) { 
-                cardRect = getCardRect("left2");
-                let cardRectBefore = getCardRect("left");
-                let xPosVisibleStart = Math.min(cardRectBefore.xLeft,  cardRect.xRight);
-                let xPos = cardRect.xLeft + 20 + (playerChoice.positionOffset.side.x*(xPosVisibleStart-cardRect.xLeft))
-                image(cursorImg, xPos, cardRect.y - (cardRect.h * playerChoice.positionOffset.side.y), UIRects.customCursors.w1, UIRects.customCursors.h1);
+                
+                if (indexOtherArray.length == 0) {continue;}
+
+                for (let i = 0; i < indexOtherArray.length; i++) {
+                  const indexOther = indexOtherArray[i];
+                  if (indexOther == informationPlayer.previewCardIndex) {
+                  cardRect = UIRects.cards.middle;
+                  image(cursorImg, cardRect.x + (cardRect.w * playerChoice.positionOffset.middle.x) , cardRect.y - (cardRect.h * playerChoice.positionOffset.middle.y), UIRects.customCursors.w1, UIRects.customCursors.h1);
+                  } else if (indexOther == informationPlayer.previewCardIndex+1) { 
+                  cardRect = UIRects.cards.right;
+                  let cardRectBefore = UIRects.cards.middle;
+                  let xPosVisibleStart = Math.max(cardRectBefore.xRight,  cardRect.xLeft);
+                  let xPos = cardRect.xRight - 20 - (playerChoice.positionOffset.side.x*(cardRect.xRight-xPosVisibleStart))
+                  image(cursorImg, xPos, cardRect.y - (cardRect.h * playerChoice.positionOffset.side.y), UIRects.customCursors.w1, UIRects.customCursors.h1);
+                  } else if (indexOther == informationPlayer.previewCardIndex+2) { 
+                  cardRect = UIRects.cards.right2;
+                  let cardRectBefore = UIRects.cards.right;
+                  let xPosVisibleStart = Math.max(cardRectBefore.xRight,  cardRect.xLeft);
+                  let xPos = cardRect.xRight - 20 - (playerChoice.positionOffset.side.x*(cardRect.xRight-xPosVisibleStart))
+                  image(cursorImg, xPos, cardRect.y - (cardRect.h * playerChoice.positionOffset.side.y), UIRects.customCursors.w1, UIRects.customCursors.h1);
+                  } else if (indexOther == informationPlayer.previewCardIndex-1) { 
+                  cardRect = UIRects.cards.left;
+                  let cardRectBefore = UIRects.cards.middle;
+                  let xPosVisibleStart = Math.min(cardRectBefore.xLeft,  cardRect.xRight);
+                  let xPos = cardRect.xLeft + 20 + (playerChoice.positionOffset.side.x*(xPosVisibleStart-cardRect.xLeft))
+                  image(cursorImg, xPos, cardRect.y - (cardRect.h * playerChoice.positionOffset.side.y), UIRects.customCursors.w1, UIRects.customCursors.h1);
+                  } else if (indexOther == informationPlayer.previewCardIndex-2) { 
+                  cardRect = UIRects.cards.left2;
+                  let cardRectBefore = UIRects.cards.left;
+                  let xPosVisibleStart = Math.min(cardRectBefore.xLeft,  cardRect.xRight);
+                  let xPos = cardRect.xLeft + 20 + (playerChoice.positionOffset.side.x*(xPosVisibleStart-cardRect.xLeft))
+                  image(cursorImg, xPos, cardRect.y - (cardRect.h * playerChoice.positionOffset.side.y), UIRects.customCursors.w1, UIRects.customCursors.h1);
+                  }
                 }
-            }
-            tint(baseTint); // Reset tint to base color
+              }
+              tint(baseTint); // Reset tint to base color
             }
         }
       }
     //#endregion cursor
+    //#endregion other players
     imageMode(CORNER);
     if (!showHelp){
       tint(160);
@@ -147,4 +185,51 @@ function draw() {
     //#endregion SELECT PHASE
   }
   showTutorialMessages();
+
+  //draw messages
+  if (fade > 0){
+    drawMessage();
+  }
 }
+
+//#region functions
+
+function drawCard(cardPosition, cardIndex) {
+  let cardRect = UIRects.cards[cardPosition];
+  let imageRect = UIRects.images[cardPosition];
+  let card = availableCards[cardIndex];
+  if (card == null) {console.warn("Card is null "+ cardIndex); return;}
+  //base
+  image(imageLookUp["card_empty.png"], cardRect.x, cardRect.y, cardRect.w, cardRect.h);
+  
+  // image
+  image(card.Image, imageRect.x, imageRect.y, imageRect.size, imageRect.size);
+
+  // Cost
+  if (card.Cost > 0) {
+    const costImageKey = `cost_${card.Cost}blood.png`;
+    image(imageLookUp[costImageKey], UIRects.costs[cardPosition].x, UIRects.costs[cardPosition].y, UIRects.costs[cardPosition].size, UIRects.costs[cardPosition].size);
+  }
+
+  // Ability
+  if (card.Ability != null && card.Ability != "") {
+    const formattedName = `ability_${card.Ability.toLowerCase()}.png`;
+    image(imageLookUp[formattedName], UIRects.abilities[cardPosition].x, UIRects.abilities[cardPosition].y, UIRects.abilities[cardPosition].size, UIRects.abilities[cardPosition].size);
+  }
+
+  // name
+  fill(0);
+  noStroke();
+  textAlign(CENTER, TOP);
+  textFont(cardFont);
+  textSize(cardRect.w * 0.2);
+  text(card.Name, cardRect.x, cardRect.y - cardRect.h * 0.47);
+
+  // Health
+  textSize(cardRect.w * 0.25);
+  text(card.Health, cardRect.x + cardRect.w * 0.26, cardRect.y + cardRect.h * 0.29);
+
+  // Attack
+  text(card.Attack, cardRect.x - cardRect.w * 0.26, cardRect.y + cardRect.h * 0.225);
+}
+

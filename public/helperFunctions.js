@@ -83,6 +83,55 @@ function getCardRect(positionKey) {
   };
 }
 
+function getImageRect(positionKey) {
+  let xPos = UIRects.cards[positionKey].x;
+  let yPos = UIRects.cards[positionKey].y - (UIRects.cards[positionKey].h * 0.1);
+  let size = UIRects.cards[positionKey].w * 0.8;
+  return {
+    x: xPos,
+    y: yPos,
+    size: size,
+  };
+}
+
+function getCostRect(positionKey) {
+  let xPos = UIRects.cards[positionKey].x + (UIRects.cards[positionKey].w * 0.2);
+  let yPos = UIRects.cards[positionKey].y - (UIRects.cards[positionKey].h * 0.25);
+  let size = UIRects.cards[positionKey].w * 0.5;
+  return {
+    x: xPos,
+    y: yPos,
+    size: size,
+  };
+}
+
+function getAbilityRect(positionKey) {
+  let xPos = UIRects.cards[positionKey].x;
+  let yPos = UIRects.cards[positionKey].y + (UIRects.cards[positionKey].h * 0.3);
+  let size = UIRects.cards[positionKey].w * 0.3;
+  return {
+    x: xPos,
+    y: yPos,
+    size: size,
+  };
+}
+
+function getButtonRect(positionKey) {
+  switch (positionKey) {
+    case "middleLow":
+      let scale = Math.max(Math.min(windowHeight*0.2, 300), 100);
+      return {
+        x: windowWidth * 0.5,
+        y: windowHeight * 0.93,
+        w : scale ,
+        h : scale / 2.75,
+      };
+      default:
+        console.error("Invalid position key for get button:", positionKey);
+        return -1;
+  }
+}
+
 function getCursorRect() {
   let widthSmall = cardWidth * 0.25;
   let heightSmall = cardWidth * 0.25;
@@ -91,16 +140,9 @@ function getCursorRect() {
   return {
     w1: widthSmall, //für other player
     h1: heightSmall,
-    w2: width,  //für player
+    w2: width,  //für main player
     h2: height
   };
-}
-
-function resetSelection() {
-  console.log("resetSelection");
-  numCards = 0;
-  previewCardIndex = 0;
-  selectedCard = null;
 }
 
 function windowResized() {
@@ -152,6 +194,25 @@ function calculateUISize(resize = 1.25) {
   UIRects.cards.right2 = getCardRect("right2");
   UIRects.cards.middle = getCardRect("middle");
 
+  UIRects.images.left = getImageRect("left");
+  UIRects.images.right = getImageRect("right");
+  UIRects.images.left2 = getImageRect("left2");
+  UIRects.images.right2 = getImageRect("right2");
+  UIRects.images.middle = getImageRect("middle");
+
+  UIRects.costs.left = getCostRect("left");
+  UIRects.costs.right = getCostRect("right");
+  UIRects.costs.left2 = getCostRect("left2");
+  UIRects.costs.right2 = getCostRect("right2");
+  UIRects.costs.middle = getCostRect("middle");
+
+  UIRects.abilities.left = getAbilityRect("left");
+  UIRects.abilities.right = getAbilityRect("right");  
+  UIRects.abilities.left2 = getAbilityRect("left2");
+  UIRects.abilities.right2 = getAbilityRect("right2");
+  UIRects.abilities.middle = getAbilityRect("middle");
+
+  UIRects.buttons.middleLow = getButtonRect("middleLow");
 
   scale = windowWidth/3/cursorImg.width;
   scale = Math.min(scale,3);
@@ -176,8 +237,22 @@ function calculateUISize(resize = 1.25) {
 
 function removeSelfFromChoices(){
   if (playerChoices.hasOwnProperty(ownIdOnServer)) {
+    console.log("color: " + playerChoices[ownIdOnServer].color);
+
     delete playerChoices[ownIdOnServer]; // Dynamically delete the key using the variable
   } else {
     console.warn(`Key '${ownIdOnServer}' does not exist in choices.`);
   }
+}
+
+function initInformationPlayer() {
+  informationPlayer = { 
+    previewCardIndex: -1,
+    selectedCards: {}, 
+    buttonPressed: false
+  };
+
+  if (numCards > 0) {
+    informationPlayer.previewCardIndex = 0;
+  }    
 }
