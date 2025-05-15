@@ -96,23 +96,11 @@ function getCursorRect() {
   };
 }
 
-
-function getOtherPlayerCursorPostion(socketID) {
-  otherPlayerChoices[socketID].positionOffset.side.x = random(); // procentual value of visible area for side cards
-  otherPlayerChoices[socketID].positionOffset.side.y = random(0, 0.45);
-  otherPlayerChoices[socketID].positionOffset.middle.x = random(0.25, 0.4) * random([-1, 1]);
-  otherPlayerChoices[socketID].positionOffset.middle.y = random(0, 0.45);
-}
-
 function resetSelection() {
   console.log("resetSelection");
   numCards = 0;
   previewCardIndex = 0;
   selectedCard = null;
-  for (const key of Object.keys(otherPlayerChoices)) {
-    otherPlayerChoices[key].cardSelected = -1;
-    otherPlayerChoices[key].cardPreview = -1;
-  }
 }
 
 function windowResized() {
@@ -184,4 +172,12 @@ function calculateUISize(resize = 1.25) {
   UIRects.help.scale = scale;
   UIRects.help.w = scale;
   UIRects.help.h = scale;
+}
+
+function removeSelfFromChoices(){
+  if (playerChoices.hasOwnProperty(ownIdOnServer)) {
+    delete playerChoices[ownIdOnServer]; // Dynamically delete the key using the variable
+  } else {
+    console.warn(`Key '${ownIdOnServer}' does not exist in choices.`);
+  }
 }

@@ -1,21 +1,16 @@
 let debug = true;
+let drawPlayerCursors = true;
 
 let socket;
 let isMobile = false;
-let numCards = 0;
+
+// client information
+let ownIdOnServer = null;
+let playerChoices = {};
 let previewCardIndex = 0;
-let mainFont;
-let images = [];
-let imageLookUp = {}; // Object to store loaded images with their filenames as keys
+let selectedCard = -1;
 
-let playerID; // ID of the player (num players), additionally to playerID
-let activeOtherPlayer = 0; 
-let otherPlayerChoices = {};
-
-let cardWidth, cardHeight, arrowWidth, arrowHeight, cursorWidth, cursorHeight;
-
-let selectedCard = null;
-
+// card/ game information
 const GamePhase = {
   wait: "wait",
   select: "select",
@@ -24,6 +19,12 @@ const GamePhase = {
   attack: "attack",
   menu: "menu"
 };
+
+let numCards = 0;
+let availableCards = []; // objects
+let nonPlayableCards = []; // indexes of cards that are not playable
+let currentCardToPlay = null; // cardInfo
+let currentPhase = GamePhase.wait;
 
 class CardInfo {
   constructor(Health, Attack, Cost, Ability, Name) {
@@ -36,13 +37,7 @@ class CardInfo {
   }
 }
 
-let availableCards = []; // objects
-let nonPlayableCards = []; // indexes of cards that are not playable
-let currentCardToPlay = null; // cardInfo
-
-let currentPhase = GamePhase.wait;
-
-// TODO auslagern in anderes script
+// UI Stuff
 const cardPositions = {
   middleCard: 
     {
@@ -74,6 +69,14 @@ const arrowPositions = {
   }
 }
 
+const baseTint = [120, 70, 20]; // Reddish-brown, simulates dim warm lighting
+
+let mainFont;
+let images = [];
+let imageLookUp = {}; // Object to store loaded images with their filenames as keys
+let customColors = [];
+let smallerSide = null;
+let cardWidth, cardHeight, arrowWidth, arrowHeight, cursorWidth, cursorHeight;
 let UIRects = {
   arrows: {
     left: {},
@@ -90,9 +93,3 @@ let UIRects = {
   },
   help:{}
 }
-
-const baseTint = [120, 70, 20]; // Reddish-brown, simulates dim warm lighting
-
-let customColors = [];
-
-let smallerSide = null;
