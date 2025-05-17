@@ -69,6 +69,18 @@ function press(){
           break;
       }
       break;
+    case GamePhase.sacrifice:
+      // turn right
+      switch (helpState.sacrificePhase) {
+        case 0:
+          pressSelectPhase();
+          helpState.sacrificePhase++;
+          break;
+        default:
+          pressSelectPhase();
+          break;
+      }
+      break;
 
   }
 

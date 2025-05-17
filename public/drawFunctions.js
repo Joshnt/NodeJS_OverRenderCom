@@ -73,20 +73,20 @@ function drawCard(cardPosition, cardIndex) {
       const costImageKey = `cost_${card.Cost}blood.png`;
       image(imageLookUp[costImageKey], UIRects.costs[cardPosition].x, UIRects.costs[cardPosition].y, UIRects.costs[cardPosition].size, UIRects.costs[cardPosition].size);
     }
+    
 
     // Ability
     if (card.Ability != null && card.Ability != "") {
       const formattedName = `ability_${card.Ability.toLowerCase()}.png`;
       image(imageLookUp[formattedName], UIRects.abilities[cardPosition].x, UIRects.abilities[cardPosition].y, UIRects.abilities[cardPosition].size, UIRects.abilities[cardPosition].size);
     }
-
     // name
     fill(0);
     noStroke();
     textAlign(CENTER, TOP);
     textFont(cardFont);
     textSize(cardRect.w * 0.2);
-    text(card.Name, cardRect.x, cardRect.y - cardRect.h * 0.47);
+    text(card.DisplayedName, cardRect.x, cardRect.y - cardRect.h * 0.47);
 
     // Health
     textSize(cardRect.w * 0.25);
@@ -242,23 +242,28 @@ function drawOtherPlayerDots(){
 function drawFullCard(cardPosition, previewIndex, cursorType){
   switch (cardPosition) {
     case "left":
-      if (!informationPlayer.previewCardIndex > 0) return;
+      if (informationPlayer.previewCardIndex <= 0){
+        return;
+      }
       break;
     case "right":
-      if (!informationPlayer.previewCardIndex+1 < numCards) return;
+      if (informationPlayer.previewCardIndex+1 >= numCards) {
+      }
       break;
     case "left2":
-      if (!informationPlayer.previewCardIndex+1 < numCards) return;
+      if (informationPlayer.previewCardIndex+2 >= numCards) {
+        return;}
       break;
     case "right2":
-      if (!informationPlayer.previewCardIndex+2 < numCards) return;
+      if (informationPlayer.previewCardIndex+2 >= numCards) {return};
       break;
     case "middle":
-      if (!numCards > 0) return;
+      if (numCards <= 0) {return};
     break;
   }
   drawCard(cardPosition, previewIndex);
   // draw cursor
+  console.log("selectedCards: " + Object.keys(informationPlayer.selectedCards));
   if (previewIndex in informationPlayer.selectedCards) {
     if (cardPosition == "right" || cardPosition == "right2") {
       push(); // Save the current transformation state

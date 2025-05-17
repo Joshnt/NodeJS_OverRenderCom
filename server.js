@@ -18,12 +18,13 @@ let choices = {
 }
 
 class CardInfo {
-  constructor(Health, Attack, Cost, Ability, Name) {
+  constructor(Health, Attack, Cost, Ability, Name, DisplayedName) {
     this.Health = Health;
     this.Attack = Attack;
     this.Cost = Cost;
     this.Ability = Ability;
     this.Name = Name;
+    this.DisplayedName = DisplayedName;
     this.Image = null; 
   }
 }
@@ -159,7 +160,8 @@ io.on("connection", (socket) => {
         card.Attack,
         card.Cost,
         card.Ability,
-        card.Name
+        card.Name,
+        card.DisplayedName
       ));
     } else {
       console.error("Invalid AvailableCards data:", AvailableCards);
@@ -179,7 +181,8 @@ io.on("connection", (socket) => {
         CurrentCardToPlay.Attack,
         CurrentCardToPlay.Cost,
         CurrentCardToPlay.Ability,
-        CurrentCardToPlay.Name
+        CurrentCardToPlay.Name,
+        CurrentCardToPlay.DisplayedName
       );
     } else {
       currentCardToPlay = null;

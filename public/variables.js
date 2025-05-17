@@ -31,12 +31,13 @@ let currentCardToPlay = null; // cardInfo
 let currentPhase = GamePhase.wait;
 
 class CardInfo {
-  constructor(Health, Attack, Cost, Ability, Name) {
+  constructor(Health, Attack, Cost, Ability, Name, DisplayedName) {
     this.Health = Health;
     this.Attack = Attack;
     this.Cost = Cost;
     this.Ability = Ability;
     this.Name = Name;
+    this.DisplayedName = DisplayedName;
     this.Image = null; 
   }
 }
