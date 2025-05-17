@@ -49,7 +49,11 @@ function setup() {
   socket.on("allPlayerCards", (cards) => {
     availableCards = cards;
     for (const card of availableCards) {
-      let formattedName = `portrait_${card.Name.toLowerCase().replace(/\s+/g, "_")}.png`;
+      let formattedName;
+      if (card.Name == "EMPTYSLOT") {
+        formattedName = "card_slot.png";
+      } else {
+      formattedName = `portrait_${card.Name.toLowerCase().replace(/\s+/g, "_")}.png`;}
       card.Image = imageLookUp[formattedName];
     }
     numCards = availableCards.length;

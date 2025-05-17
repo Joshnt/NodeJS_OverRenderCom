@@ -56,6 +56,19 @@ function press(){
           pressSelectPhase();
           break;
       }
+      break;
+    case GamePhase.place:
+      // turn right
+      switch (helpState.placePhase) {
+        case 0:
+          pressSelectPhase();
+          helpState.placePhase++;
+          break;
+        default:
+          pressSelectPhase();
+          break;
+      }
+      break;
 
   }
 
@@ -90,10 +103,14 @@ function pressSelectPhase(){
     }
 
     if (!(informationPlayer.previewCardIndex in informationPlayer.selectedCards)) { // previewcard not selected
-      //if (Object.keys(informationPlayer.selectedCards).length < allowCardSelection) {
+      // Select card with allow check
+      if (allowCardSelection == 1){
         informationPlayer.selectedCards = {};
         informationPlayer.selectedCards[informationPlayer.previewCardIndex] = true;
-      //}
+      }
+      else if (Object.keys(informationPlayer.selectedCards).length < allowCardSelection) {
+        informationPlayer.selectedCards[informationPlayer.previewCardIndex] = true;
+      }
     } else{
       delete informationPlayer.selectedCards[informationPlayer.previewCardIndex];
     }
@@ -125,6 +142,10 @@ function keyPressed() {
     }
     if (key === 'n') {
       informationPlayer.previewCardIndex--;}
+    if (key === 's'){
+      currentPhase = GamePhase.sacrifice;
+      console.log("currentPhase: " + currentPhase);
+    }
   }
 }
 
